@@ -72,3 +72,89 @@ def predict(model, scaler, cgpa, internships, projects, certs, comm, coding):
     scaled = scaler.transform(features)
     prob = model.predict_proba(scaled)[0][1]
     return prob
+
+def prepare_uploaded_dataset(df):
+    """
+    Prepare uploaded dataset for ML training by mapping columns to expected format.
+    Handles common column name variations and ensures proper data types.
+    """
+    # Create a copy to avoid modifying original
+    df = df.copy()
+
+    # Define column mapping (uploaded column -> expected column)
+    column_mappings = {
+        'cgpa': 'CGPA',
+        'CGPA': 'CGPA',
+        'gpa': 'CGPA',
+        'grade': 'CGPA',
+        'score': 'CGPA',
+
+        'internships': 'Internships',
+        'Internships': 'Internships',
+        'internship': 'Internships',
+        'internship_count': 'Internships',
+        'internship_no': 'Internships',
+
+        'projects': 'Projects',
+        'Projects': 'Projects',
+        'project': 'Projects',
+        'project_count': 'Projects',
+        'project_no': 'Projects',
+
+        'certifications': 'Certifications',
+        'Certifications': 'Certifications',
+        'certification': 'Certifications',
+        'cert_count': 'Certifications',
+        'cert_no': 'Certifications',
+
+        'communication_skill': 'Communication_Skill',
+        'Communication_Skill': 'Communication_Skill',
+        'communication': 'Communication_Skill',
+        'comm_skill': 'Communication_Skill',
+        'comm': 'Communication_Skill',
+
+        'coding_skill': 'Coding_Skill',
+        'Coding_Skill': 'Coding_Skill',
+        'coding': 'Coding_Skill',
+        'programming_skill': 'Coding_Skill',
+        'tech_skill': 'Coding_Skill',
+
+        'placed': 'Placed',
+        'Placed': 'Placed',
+        'placement': 'Placed',
+        'placed_status': 'Placed',
+        'status': 'Placed',
+        'outcome': 'Placed',
+    }
+
+    # Rename columns based on mapping
+    df.columns = df.columns.str.lower().str.strip()
+    rename_dict = {}
+    for col in df.columns:
+        if col in column_mappings:
+            rename_dict[col] = column_mappings[col]
+
+    df = df.rename(columns=rename_dict)
+
+    # Ensure required columns exist
+    required_cols = FEATURE_COLS + ['Placed']
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        raise ValueError(f"Missing required columns: {missing_cols}")
+
+    # Convert data types
+    df['CGPA'] = pd.to_numeric(df['CGPA'], errors='coerce').clip(5.0, 10.0)
+    df['Internships'] = pd.to_numeric(df['Internships'], errors='coerce').astype(int).clip(0, 4)
+    df['Projects'] = pd.to_numeric(df['Projects'], errors='coerce').astype(int).clip(0, 5)
+    df['Certifications'] = pd.to_numeric(df['Certifications'], errors='coerce').astype(int).clip(0, 5)
+    df['Communication_Skill'] = pd.to_numeric(df['Communication_Skill'], errors='coerce').astype(int).clip(1, 5)
+    df['Coding_Skill'] = pd.to_numeric(df['Coding_Skill'], errors='coerce').astype(int).clip(1, 5)
+    df['Placed'] = pd.to_numeric(df['Placed'], errors='coerce').astype(int).clip(0, 1)
+
+    # Drop rows with NaN values
+    df = df.dropna()
+
+    # Reset index
+    df = df.reset_index(drop=True)
+
+    return df
